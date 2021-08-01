@@ -1,7 +1,7 @@
-﻿using Catalog.SI.DTOs;
-using Catalog.SI.Models;
+﻿using Catalog.SI.Models;
 using Catalog.SI.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,17 +16,24 @@ namespace Catalog.SI.Controllers
     {
 
         private readonly IInMemoryItemsRepository repository;
-
+        private readonly ILogger<ItemsController> logger;
         
-        public ItemsController(IInMemoryItemsRepository repository)
+        public ItemsController(IInMemoryItemsRepository repository, ILogger<ItemsController> logger)
         {
             this.repository = repository;
+            this.logger = logger;
         }
 
         [HttpGet("GetItems")]
-        public async Task<IEnumerable<ItemDto>> GetItemsAsync()
+        public async Task<IEnumerable<ItemDto>> GetItemsAsync(string nameToMatch = null)
         {
             var items = (await repository.GetItemsAsync()).Select(item => item.AsDto());
+
+            if (!string.IsNullOrWhiteSpace(nameToMatch))
+            {
+                items = items.Where(item => item.Name.Contains(nameToMatch, StringComparison.OrdinalIgnoreCase));
+            }
+
             return items;
         }
 
@@ -40,7 +47,7 @@ namespace Catalog.SI.Controllers
                 return NotFound();
             }
 
-            return Ok(item.AsDto());
+            return item.AsDto();
         }
 
         [HttpPost("CreateItem")]
@@ -50,6 +57,7 @@ namespace Catalog.SI.Controllers
             {
                 Id = Guid.NewGuid(),
                 Name = itemDto.Name,
+                Description=itemDto.Description,
                 Price = itemDto.Price,
                 CreatedDate = DateTimeOffset.UtcNow
             };
@@ -70,13 +78,10 @@ namespace Catalog.SI.Controllers
                 return NotFound();
             }
 
-            Item updatedItem = existingItem with
-            {
-                Name = itemDto.Name,
-                Price = itemDto.Price
-            };
+            existingItem.Name = itemDto.Name;
+            existingItem.Price = itemDto.Price;
 
-            await repository.UpdateItemAsync(updatedItem);
+            await repository.UpdateItemAsync(existingItem);
 
             return NoContent();
         }

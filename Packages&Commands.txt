@@ -5,6 +5,9 @@ dotnet dev-certs https --trust
 Package:
 dotnet add package Mongo.Driver
 dotnet add package AspNetCore.HealthChecks.MongoDb
+dotnet add package Logging.Abstractions
+dotnet add package moq
+dotnet add package FluentAssertions
 
 Commands:
 docker run -d --rm --name mongo -p 27017:27017 -v mongodbdata:/data/db mongo
